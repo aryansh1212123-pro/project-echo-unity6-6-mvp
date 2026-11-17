@@ -58,6 +58,13 @@ namespace ProjectEcho
             if (newHash != mutationHash && Avatar != null) { mutationHash = newHash; Avatar.RebuildAppearance(); }
         }
 
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) SaveNow();
+        }
+
+        private void OnApplicationQuit() => SaveNow();
+
         public void SaveNow() => saveManager.Save(State);
 
         public void CareFeed()
@@ -94,7 +101,7 @@ namespace ProjectEcho
             RenderSettings.ambientLight = new Color(.34f, .40f, .58f);
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Exponential; RenderSettings.fogDensity = .012f;
             RenderSettings.fogColor = new Color(.06f, .12f, .23f);
-            if (FindObjectOfType<Light>() == null)
+            if (UnityEngine.Object.FindAnyObjectByType<Light>() == null)
             {
                 var lightObject = new GameObject("Moonlight");
                 var light = lightObject.AddComponent<Light>(); light.type = LightType.Directional;

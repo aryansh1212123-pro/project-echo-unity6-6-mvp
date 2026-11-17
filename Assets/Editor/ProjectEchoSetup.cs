@@ -74,10 +74,21 @@ namespace ProjectEcho.EditorTools
 
         private static void BuildWindowsPlayer(string output, bool showDialog)
         {
+            string[] scenes = EditorBuildSettings.scenes
+                .Where(s => s.enabled && File.Exists(s.path))
+                .Select(s => s.path)
+                .ToArray();
+            if (scenes.Length == 0)
+            {
+                string message = "No enabled scene is available in Build Settings. Create the playable scene before building.";
+                if (showDialog) { EditorUtility.DisplayDialog("Project Echo", message, "OK"); return; }
+                throw new Exception(message);
+            }
+
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? "Build");
             var options = new BuildPlayerOptions
             {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                scenes = scenes,
                 locationPathName = output,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None

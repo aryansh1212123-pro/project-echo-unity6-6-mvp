@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -7,37 +8,64 @@ namespace ProjectEcho
     public sealed class EchoSaveManager
     {
         private const int CurrentSchema = 2;
+        private bool writesBlocked;
+        private bool warnedAboutBlockedWrites;
         public string SavePath => Path.Combine(Application.persistentDataPath, "project_echo_save.json");
 
         public EchoGameState LoadOrCreate()
         {
-            try
+            string backupPath = SavePath + ".bak";
+            if (File.Exists(SavePath))
             {
-                if (File.Exists(SavePath))
+                try
                 {
-                    EchoGameState loaded = JsonUtility.FromJson<EchoGameState>(File.ReadAllText(SavePath));
-                    if (loaded != null && loaded.echo != null)
+                    EchoGameState primary = ReadAndMigrate(SavePath);
+                    if (primary != null)
                     {
-                        int previousSchema = loaded.schemaVersion;
-                        if (previousSchema < 2 && loaded.worldKnowledge == null)
-                            loaded.worldKnowledge = new System.Collections.Generic.List<WorldKnowledgeEntry>();
-                        loaded.schemaVersion = CurrentSchema;
-                        loaded.EnsureValid();
                         Debug.Log("Project Echo save loaded from " + SavePath);
-                        return loaded;
+                        return primary;
                     }
                 }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("Primary Project Echo save could not be loaded: " + ex.Message);
+                }
             }
-            catch (Exception ex)
+
+            if (File.Exists(backupPath))
             {
-                Debug.LogWarning("Could not read Project Echo save; starting a fresh Echo. " + ex.Message);
-                TryRecoverBackup();
+                try
+                {
+                    EchoGameState recovered = ReadAndMigrate(backupPath);
+                    if (recovered != null)
+                    {
+                        // Restore only after the backup has parsed and passed migration/validation.
+                        // Keep the backup intact until a later successful save rotates it.
+                        if (!writesBlocked) File.Copy(backupPath, SavePath, true);
+                        Debug.LogWarning("Project Echo recovered its profile from the backup save.");
+                        return recovered;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("Project Echo backup could not be loaded: " + ex.Message);
+                }
             }
+
             return CreateNewState();
         }
 
         public void Save(EchoGameState state)
         {
+            if (writesBlocked)
+            {
+                if (!warnedAboutBlockedWrites)
+                {
+                    Debug.LogWarning("Project Echo did not save: this profile uses a newer save schema. Open it with a compatible newer game version to avoid overwriting data.");
+                    warnedAboutBlockedWrites = true;
+                }
+                return;
+            }
             if (state == null || state.echo == null) return;
             try
             {
@@ -64,14 +92,32 @@ namespace ProjectEcho
             catch (Exception ex) { Debug.LogError("Project Echo could not save: " + ex.Message); }
         }
 
-        private void TryRecoverBackup()
+        private EchoGameState ReadAndMigrate(string path)
         {
-            try
+            EchoGameState state = JsonUtility.FromJson<EchoGameState>(File.ReadAllText(path));
+            if (state == null) throw new InvalidDataException("Save file could not be deserialized.");
+
+            if (state.schemaVersion > CurrentSchema)
             {
-                string backup = SavePath + ".bak";
-                if (File.Exists(backup)) File.Copy(backup, SavePath, true);
+                writesBlocked = true;
+                if (state.echo == null)
+                    throw new InvalidDataException("Save uses a newer schema with an incompatible profile shape; writes are disabled to protect the original file.");
+                state.EnsureValid();
+                Debug.LogWarning("Project Echo save schema " + state.schemaVersion + " is newer than this build's schema " + CurrentSchema + ". Saves are disabled to protect the original file.");
+                return state;
             }
-            catch (Exception ex) { Debug.LogWarning("Save backup recovery failed: " + ex.Message); }
+
+            if (state.echo == null) throw new InvalidDataException("Save file has no Echo profile.");
+            if (state.schemaVersion < 1) throw new InvalidDataException("Save file has an invalid schema version.");
+            if (state.schemaVersion == 1)
+            {
+                // Schema 2 introduced persistent world-location knowledge.
+                if (state.worldKnowledge == null) state.worldKnowledge = new List<WorldKnowledgeEntry>();
+                state.schemaVersion = 2;
+            }
+
+            state.EnsureValid();
+            return state;
         }
 
         private static EchoGameState CreateNewState()
@@ -85,7 +131,8 @@ namespace ProjectEcho
                 {
                     id = Guid.NewGuid().ToString("N"), displayName = names[index],
                     traits = new EchoTraits(), needs = new EchoNeeds(), playerRelationship = new EchoRelationship()
-                }
+                },
+                worldKnowledge = new List<WorldKnowledgeEntry>()
             };
         }
     }

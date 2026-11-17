@@ -29,6 +29,8 @@ jobs:
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Unity build skipped. Configure the Unity license secrets described in README.md to enable CI builds."
+            echo "### Unity player build skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Configure the Unity license secrets listed in README.md to enable this build." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Check out source

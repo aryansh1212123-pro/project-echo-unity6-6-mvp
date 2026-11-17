@@ -15,11 +15,11 @@ namespace ProjectEcho
         private string toast = "The Sanctuary is listening.";
         private float toastTimer;
 
-        private void Start() { game = FindObjectOfType<EchoSceneBootstrap>(); }
+        private void Start() { game = UnityEngine.Object.FindAnyObjectByType<EchoSceneBootstrap>(); }
 
         private void OnGUI()
         {
-            if (game == null) game = FindObjectOfType<EchoSceneBootstrap>();
+            if (game == null) game = UnityEngine.Object.FindAnyObjectByType<EchoSceneBootstrap>();
             if (game == null || game.Profile == null) return;
             EnsureStyles();
             float w = Screen.width, h = Screen.height;
