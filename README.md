@@ -1,55 +1,80 @@
-# Project Echo — Unity 6 MVP vertical slice
+# Project Echo — Unity 6.6 MVP vertical slice
 
-A small, self-contained Unity source project built from the supplied Project Echo brief. It focuses on the emotional core: care in the Sanctuary, deterministic expedition choices, personality shaped by experience, a persistent memory journal, and visible mutation progression.
+Project Echo is a single-player life-simulation prototype about creating an artificial lifeform, caring for it, and seeing its personality and memories emerge. This MVP focuses on the emotional core: Sanctuary care, deterministic expedition choices, a persistent memory journal, and visible mutation progression.
 
-## What this build includes
+**Have an idea?** Feature suggestions are welcome. [Open a feature suggestion](https://github.com/aryansh1212123-pro/project-echo-unity6-6-mvp/issues/new?template=feature_request.yml) or read [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- **Playable Glass Jungle scene:** generated from Unity primitives at runtime, with a procedural Echo, crystal canopy, ruin fragments, softly shifting fog, and a distant predator silhouette. No external art packages are required.
-- **One named Starter Echo:** generated profile, five traits, five needs, one player relationship, visible behavior state and explanation.
-- **Deterministic utility behavior:** the Echo weighs unmet needs, traits, trust, and remembered predator/rescue experiences to choose actions. It does not use random behavior selection.
-- **Three-choice expedition loop:** three situations per trip, with two meaningful options each. Outcome scores are deterministic and based on the favored trait, current safety, player trust, and relevant prior memories. Journeys can create rescue, ruin, discovery, predator, and homecoming memories.
-- **Memory archive:** personal, environmental, and social records carry tags, emotional value, location, importance, time, participants, and strength. Predator memories make the Echo more cautious in subsequent decisions.
-- **Sanctuary care actions:** feed, soothe, play, or rest; each changes needs/relationship and records a social memory.
-- **Gene Forge:** ten mutations, with material costs. Several alter the model immediately; Regeneration, Deep Memory, and Neural Creativity also affect simulation values.
-- **Persistence:** versioned JSON save with backup attempt under `Application.persistentDataPath`. Profile, needs, traits, memories, relationship, mutations, resources, days, and expedition count persist.
-- **Windows demo build command:** an Editor menu command can build a standalone player if the Windows Build Support module is installed.
+## What is included
 
-## Open and run
+- **Glass Jungle and Sanctuary:** generated Unity scene with a procedural Echo, crystal canopy, ruin fragments, shifting fog, and a distant predator silhouette. No external art packages are required.
+- **One Starter Echo:** generated name and profile, five personality traits, five needs, one player relationship, visible behavior state, and an explanation of its current decision.
+- **Deterministic utility behavior:** unmet needs, traits, trust, and remembered predator/rescue experiences influence the Echo's decisions. Behavior selection is not random.
+- **Expeditions:** three situations per journey, with two choices each. Outcomes are computed from the Echo's traits, needs, player trust, and relevant memories. Journeys can create rescue, ruin, discovery, predator, and homecoming memories.
+- **Memory archive:** personal, environmental, and social memories record tags, emotional value, location, importance, time, participants, and strength. Remembered predator danger influences later decisions.
+- **Sanctuary care:** feed, soothe, play, or rest. Each action changes needs or relationships and creates a social memory.
+- **Gene Forge:** ten mutations with material costs. Several change the Echo's appearance; Regeneration, Deep Memory, Neural Creativity, Echo Sense, Defensive Shell, and Neural Link also affect simulation behavior or values.
+- **Persistence:** versioned JSON save with backup fallback under `Application.persistentDataPath`.
+- **GitHub Actions:** `.github/workflows/unity-build.yml` builds a Windows player using Unity 6.6 and uploads it as a downloadable workflow artifact when license secrets are configured.
 
-1. Install **Unity 6.6 (`6000.6.8f1`)** in Unity Hub. This project is pinned to that editor revision. Add **Windows Build Support (IL2CPP or Mono)** if you want a Windows executable.
-2. In Unity Hub, add this folder as a project. Allow Unity to import and compile the scripts.
-3. In the editor, choose **Project Echo → Create or Reset Playable Scene**. The command creates a tuning asset, generates `Assets/Scenes/ProjectEcho.unity`, and adds it to Build Settings.
-4. Press **Play**. Use the top navigation for Sanctuary, Expedition, Memory Archive, and Gene Forge. Expedition choices are made with the mouse.
-5. To create a local Windows demo, choose **Project Echo → Build Windows Demo**. The output is `Build/ProjectEcho.exe` plus its data folder.
+## Open and run in Unity 6.6
 
-The project uses built-in Unity primitives and IMGUI; it has no third-party package dependencies. If you open it in a different editor version and Unity prompts to upgrade the project, make a copy first; the recommended editor is the pinned 6.6 version.
+1. Install **Unity 6.6 (`6000.6.8f1`)** in Unity Hub. This repository pins the project to that editor revision.
+2. For a local Windows player build, install **Windows Build Support** in Unity Hub's install modules. The Editor workflow can also be used to run the game without building a standalone player.
+3. In Unity Hub, choose **Add project from disk** and select the cloned repository folder. Let Unity import the project and compile its scripts.
+4. From the Unity menu, choose **Project Echo → Create or Reset Playable Scene**. This generates `Assets/Scenes/ProjectEcho.unity` and `Assets/Resources/EchoTuning.asset`.
+5. Press **Play**. Use the top navigation for Sanctuary, Expedition, Memory Archive, and Gene Forge. Expedition choices are made with the mouse.
+6. To create a local Windows demo, choose **Project Echo → Build Windows Demo**. The output is `Build/ProjectEcho.exe` and its accompanying data folder.
+
+The project uses built-in Unity primitives and IMGUI and has no third-party Unity package dependencies. If you open it using another editor version and Unity prompts to upgrade the project, make a copy first; the recommended version is the pinned Unity 6.6 editor.
+
+## GitHub Actions build
+
+The workflow runs on pushes to `main`, pull requests targeting `main`, and manual runs from the **Actions** tab. It uses GameCI's Unity Builder to target `StandaloneWindows64`. The editor method generates the scene and tuning asset in batch mode before building; the resulting player is uploaded as `ProjectEcho-Windows-Unity-6.6` for 14 days.
+
+Unity requires an activated license for CI builds. Configure GitHub Actions secrets under **Settings → Secrets and variables → Actions**:
+
+- For a Unity Personal license, add `UNITY_LICENSE` with the contents of your activated `.ulf` file, plus `UNITY_EMAIL` and `UNITY_PASSWORD` for the Unity account.
+- For a Unity Professional license, add `UNITY_EMAIL`, `UNITY_PASSWORD`, and `UNITY_SERIAL`.
+
+The workflow checks for credentials without printing them. If they are not configured, it skips the Unity build and emits a warning, so public forks and pull requests do not fail merely because secrets are unavailable. Do not commit license files, account credentials, or serial keys to the repository.
+
+## Suggest features or contribute
+
+Please share ideas through the [Feature suggestion issue form](https://github.com/aryansh1212123-pro/project-echo-unity6-6-mvp/issues/new?template=feature_request.yml). Explain what experience you want players to have and how it could deepen the bond with an Echo. Ideas about personality, memory, relationships, exploration, and Sanctuary life are especially welcome.
+
+For code changes, read [CONTRIBUTING.md](CONTRIBUTING.md). This project intentionally avoids multiplayer, PvP, live-service systems, premium currencies, and battle passes.
 
 ## Project structure
 
 ```text
+.github/
+  ISSUE_TEMPLATE/feature_request.yml    Structured community feature-idea form
+  workflows/unity-build.yml             Unity 6.6 Windows build workflow
 Assets/
-  Editor/ProjectEchoSetup.cs          Scene generation and Windows demo build menu
-  Resources/EchoTuning.asset          Created by the Editor setup command
-  Scenes/ProjectEcho.unity            Created by the Editor setup command
+  Editor/ProjectEchoSetup.cs            Scene generation and local/CI build entry points
+  Resources/EchoTuning.asset             Generated when the scene setup command runs
+  Scenes/ProjectEcho.unity               Generated when the scene setup command runs
   Scripts/
-    Data/EchoData.cs                  Serializable simulation/save models
-    Data/EchoTuning.cs                ScriptableObject balance and encounter content
-    Systems/EchoServices.cs           Memory, needs, traits, relationship, mutations
-    Systems/EchoBrain.cs              Deterministic utility planner and action state
-    Systems/EchoSaveManager.cs        Versioned JSON persistence
-    World/EchoExpeditionDirector.cs   Expedition events, choices, consequences
-    World/EchoSceneBootstrap.cs       Scene, procedural world, and Echo actor
-    UI/EchoHUD.cs                     Sanctuary, journal, expedition, mutation UI
+    Data/EchoData.cs                     Serializable simulation/save models
+    Data/EchoTuning.cs                   ScriptableObject balance and encounter content
+    Systems/EchoServices.cs              Memory, needs, traits, relationships, mutations
+    Systems/EchoBrain.cs                 Deterministic utility planner and action state
+    Systems/EchoSaveManager.cs           Versioned JSON persistence
+    World/EchoExpeditionDirector.cs      Expedition events and consequences
+    World/EchoSceneBootstrap.cs          Runtime composition, world, and Echo actor
+    UI/EchoHUD.cs                        Sanctuary, journal, expedition, mutation UI
 Packages/manifest.json
 ProjectSettings/ProjectVersion.txt
+CONTRIBUTING.md
+README.md
 ```
 
-## Honest launch status
+## Current status
 
-This is a **source-level MVP vertical slice**, not a finished commercial Early Access release. The sandbox used to generate it does not have Unity installed, so the project has not been compiled or play-tested here. Unity generates the scene from the included menu command; run it locally and resolve any editor-version or platform-module prompts.
+This is a **source-level MVP vertical slice**, not a finished commercial Early Access release. The project has not been compiled or play-tested in this environment. Run it in the pinned Unity editor and resolve any local editor or platform-module prompts.
 
-Before an actual Steam launch, the project still needs a Unity build and QA pass on target PCs, proper rigged/animated creature and environment art, authored audio/music, accessibility and settings, input/controller support, tutorial/onboarding, performance profiling, crash/backup testing, Steamworks integration and store assets, legal/privacy review, release configuration, and a Steam partner account/build upload. This package does **not** publish anything to Steam or claim a public launch is live. It deliberately has no combat, online features, monetization, or creature-loss mechanic.
+Before a Steam launch, it still needs a Unity build and QA pass on target PCs, rigged and animated creature/environment art, authored audio, accessibility and settings, controller support, tutorial/onboarding, performance profiling, crash/backup testing, Steamworks integration and store assets, legal/privacy review, and release configuration. This repository does not publish to Steam or claim a public launch is live. It deliberately has no combat, online features, monetization, or creature-loss mechanic.
 
 ## Save location
 
-Unity writes the runtime save at `Application.persistentDataPath/project_echo_save.json`, with `.bak` fallback. Use a new profile or back up that file before changing save schemas during development.
+Unity writes runtime data to `Application.persistentDataPath/project_echo_save.json`, with a `.bak` fallback. Back up this file before changing save schemas during development.

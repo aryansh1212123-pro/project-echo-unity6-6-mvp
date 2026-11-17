@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -16,8 +17,33 @@ namespace ProjectEcho.EditorTools
         [MenuItem("Project Echo/Create or Reset Playable Scene")]
         public static void CreatePlayableScene()
         {
+            CreateOrResetPlayableScene(true);
+        }
+
+        [MenuItem("Project Echo/Build Windows Demo")]
+        public static void BuildWindowsDemo()
+        {
+            if (!File.Exists(ScenePath))
+            {
+                EditorUtility.DisplayDialog("Project Echo", "Create the playable scene first using Project Echo > Create or Reset Playable Scene.", "OK");
+                return;
+            }
+
+            BuildWindowsPlayer("Build/ProjectEcho.exe", true);
+        }
+
+        // GameCI calls this static method in batch mode. It creates the generated scene before building.
+        public static void BuildWindowsPlayerCI()
+        {
+            CreateOrResetPlayableScene(false);
+            BuildWindowsPlayer("Build/ProjectEcho.exe", false);
+        }
+
+        private static void CreateOrResetPlayableScene(bool showDialog)
+        {
             EnsureFolder("Assets/Scenes");
             EnsureFolder("Assets/Resources");
+
             EchoTuning tuning = AssetDatabase.LoadAssetAtPath<EchoTuning>(TuningPath);
             if (tuning == null)
             {
@@ -29,7 +55,6 @@ namespace ProjectEcho.EditorTools
             {
                 tuning.EnsureDefaults();
                 EditorUtility.SetDirty(tuning);
-                AssetDatabase.SaveAssets();
             }
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -41,20 +66,15 @@ namespace ProjectEcho.EditorTools
             PlayerSettings.productName = "Project Echo";
             PlayerSettings.companyName = "Project Echo";
             AssetDatabase.SaveAssets();
-            Debug.Log("Project Echo playable scene created at " + ScenePath + ". Press Play to enter the Sanctuary.");
-            EditorUtility.DisplayDialog("Project Echo", "Playable scene created. Press Play to enter the Sanctuary.", "Begin");
+            Debug.Log("Project Echo playable scene created at " + ScenePath + ".");
+
+            if (showDialog)
+                EditorUtility.DisplayDialog("Project Echo", "Playable scene created. Press Play to enter the Sanctuary.", "Begin");
         }
 
-        [MenuItem("Project Echo/Build Windows Demo")]
-        public static void BuildWindowsDemo()
+        private static void BuildWindowsPlayer(string output, bool showDialog)
         {
-            if (!File.Exists(ScenePath))
-            {
-                EditorUtility.DisplayDialog("Project Echo", "Create the playable scene first using Project Echo > Create or Reset Playable Scene.", "OK");
-                return;
-            }
-            const string output = "Build/ProjectEcho.exe";
-            Directory.CreateDirectory("Build");
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? "Build");
             var options = new BuildPlayerOptions
             {
                 scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
@@ -62,11 +82,19 @@ namespace ProjectEcho.EditorTools
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None
             };
+
             BuildReport report = BuildPipeline.BuildPlayer(options);
-            if (report.summary.result == BuildResult.Succeeded)
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                string message = "Windows build failed: " + report.summary.result + ". Check the Unity build log and confirm Windows Build Support is installed.";
+                Debug.LogError(message);
+                if (showDialog) EditorUtility.DisplayDialog("Project Echo", message, "OK");
+                throw new Exception(message);
+            }
+
+            Debug.Log("Project Echo Windows build succeeded: " + output);
+            if (showDialog)
                 EditorUtility.DisplayDialog("Project Echo", "Windows demo built to " + output + ". This is a local demo build, not a Steam release.", "OK");
-            else
-                EditorUtility.DisplayDialog("Project Echo", "Build did not complete. Check the Unity Console and install the Windows Build Support module if needed.", "OK");
         }
 
         private static void EnsureFolder(string path)

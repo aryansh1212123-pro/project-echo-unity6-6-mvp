@@ -1,0 +1,39 @@
+name: Feature suggestion
+description: Suggest a feature that could make Project Echo more memorable.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea. Please focus on the player experience and how it supports the bond with an Echo.
+  - type: textarea
+    id: experience
+    attributes:
+      label: What experience would you like players to have?
+      description: Describe the moment or story this feature could create.
+      placeholder: I want players to be able to...
+    validations:
+      required: true
+  - type: textarea
+    id: echo-bond
+    attributes:
+      label: How would this strengthen the Echo bond?
+      description: For example, personality, memory, trust, exploration, or Sanctuary life.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: How might it work?
+      description: Share a possible approach, edge cases, or trade-offs. This is optional.
+    validations:
+      required: false
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Project scope
+      options:
+        - label: I understand this project is focused on single-player life simulation and avoids multiplayer, PvP, live-service systems, premium currencies, and battle passes.
+          required: true

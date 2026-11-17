@@ -1,0 +1,58 @@
+name: Unity 6.6 Windows Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-build:
+    name: Build Windows player
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Unity license secrets
+        id: license
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [[ -n "$UNITY_EMAIL" && -n "$UNITY_PASSWORD" && ( -n "$UNITY_LICENSE" || -n "$UNITY_SERIAL" ) ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Unity build skipped. Configure the Unity license secrets described in README.md to enable CI builds."
+          fi
+
+      - name: Check out source
+        if: steps.license.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Build with Unity 6.6
+        if: steps.license.outputs.ready == 'true'
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: 6000.6.8f1
+          targetPlatform: StandaloneWindows64
+          buildMethod: ProjectEcho.EditorTools.ProjectEchoSetup.BuildWindowsPlayerCI
+
+      - name: Upload Windows build
+        if: steps.license.outputs.ready == 'true' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectEcho-Windows-Unity-6.6
+          path: Build/
+          if-no-files-found: error
+          retention-days: 14
