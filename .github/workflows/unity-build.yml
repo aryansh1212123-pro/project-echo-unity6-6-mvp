@@ -28,14 +28,37 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Unity build skipped. Configure the Unity license secrets described in README.md to enable CI builds."
-            echo "### Unity player build skipped" >> "$GITHUB_STEP_SUMMARY"
-            echo "Configure the Unity license secrets listed in README.md to enable this build." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Unity tests and build skipped. Configure the Unity license secrets described in README.md to enable CI."
+            echo "### Unity tests and player build skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Configure the Unity license secrets listed in README.md to enable CI tests and builds." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Check out source
         if: steps.license.outputs.ready == 'true'
         uses: actions/checkout@v4
+
+      - name: Run Unity EditMode tests
+        if: steps.license.outputs.ready == 'true'
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          projectPath: .
+          unityVersion: 6000.6.8f1
+          testMode: editmode
+          artifactsPath: TestResults/EditMode
+
+      - name: Upload EditMode test results
+        if: always() && steps.license.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectEcho-EditMode-TestResults
+          path: TestResults/EditMode/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build with Unity 6.6
         if: steps.license.outputs.ready == 'true'

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -251,10 +252,7 @@ namespace ProjectEcho
             GUILayout.EndHorizontal();
 
             journalScroll = GUILayout.BeginScrollView(journalScroll, GUILayout.ExpandHeight(true));
-            var memories = game.Profile.memories
-                .Where(memory => memory != null && (!journalFilter.HasValue || memory.kind == journalFilter.Value))
-                .OrderByDescending(memory => memory.timestampUtc)
-                .ToList();
+            List<EchoMemory> memories = EchoMemoryFilter.Apply(game.Profile.memories, journalFilter);
             foreach (var memory in memories)
             {
                 GUILayout.BeginVertical(panel);

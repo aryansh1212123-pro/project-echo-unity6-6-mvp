@@ -5,6 +5,9 @@
 [Bb]uilds/
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
+TestResults/
+test-artifacts/
+artifacts/
 *.csproj
 *.sln
 *.user

@@ -18,7 +18,8 @@ Project Echo is a single-player life-simulation prototype about creating an arti
 - **Sanctuary care:** feed, soothe, play, or rest. Each action changes needs or relationships and creates a social memory.
 - **Gene Forge:** ten mutations with material costs. Several change the Echo's appearance; Regeneration, Deep Memory, Neural Creativity, Echo Sense, Defensive Shell, and Neural Link also affect simulation behavior or values.
 - **Persistence:** versioned JSON save with backup fallback under `Application.persistentDataPath`.
-- **GitHub Actions:** `.github/workflows/unity-build.yml` builds a Windows player using Unity 6.6 and uploads it as a downloadable workflow artifact when license secrets are configured.
+- **Automated tests:** EditMode tests cover Echo profile/state validation and the same memory-category filtering and ordering used by the Memory Archive UI.
+- **GitHub Actions:** `.github/workflows/unity-build.yml` runs the EditMode tests before building the Windows player with Unity 6.6, then uploads test results and the player artifact when license secrets are configured.
 
 ## Open and run in Unity 6.6
 
@@ -29,18 +30,22 @@ Project Echo is a single-player life-simulation prototype about creating an arti
 5. Press **Play**. Use the top navigation for Sanctuary, Expedition, Memory Archive, and Gene Forge. Expedition choices are made with the mouse.
 6. To create a local Windows demo, choose **Project Echo → Build Windows Demo**. The output is `Build/ProjectEcho.exe` and its accompanying data folder.
 
-The project uses built-in Unity primitives and IMGUI and has no third-party Unity package dependencies. If you open it using another editor version and Unity prompts to upgrade the project, make a copy first; the recommended version is the pinned Unity 6.6 editor.
+The project uses built-in Unity primitives and IMGUI. The only explicit test dependency is Unity's Test Framework package; there are no third-party runtime packages. If you open it using another editor version and Unity prompts to upgrade the project, make a copy first; the recommended version is the pinned Unity 6.6 editor.
+
+## Run the automated tests
+
+In Unity, open **Window → General → Test Runner**, select **EditMode**, and choose **Run All**. The tests verify model validation and the production Memory Archive filter helper. GitHub Actions runs the same EditMode suite before attempting a Windows player build. Both CI stages require the Unity license secrets described below; without them the workflow reports a skip rather than claiming tests passed.
 
 ## GitHub Actions build
 
-The workflow runs on pushes to `main`, pull requests targeting `main`, and manual runs from the **Actions** tab. It uses GameCI's Unity Builder to target `StandaloneWindows64`. The editor method generates the scene and tuning asset in batch mode before building; the resulting player is uploaded as `ProjectEcho-Windows-Unity-6.6` for 14 days.
+The workflow runs on pushes to `main`, pull requests targeting `main`, and manual runs from the **Actions** tab. It runs EditMode tests with GameCI's Unity Test Runner, then targets `StandaloneWindows64` with Unity Builder. The editor method generates the scene and tuning asset in batch mode before building. Test results and the resulting player are uploaded as workflow artifacts for 14 days.
 
 Unity requires an activated license for CI builds. Configure GitHub Actions secrets under **Settings → Secrets and variables → Actions**:
 
 - For a Unity Personal license, add `UNITY_LICENSE` with the contents of your activated `.ulf` file, plus `UNITY_EMAIL` and `UNITY_PASSWORD` for the Unity account.
 - For a Unity Professional license, add `UNITY_EMAIL`, `UNITY_PASSWORD`, and `UNITY_SERIAL`.
 
-The workflow checks for credentials without printing them. If they are not configured, it skips the Unity build and emits a warning, so public forks and pull requests do not fail merely because secrets are unavailable. Do not commit license files, account credentials, or serial keys to the repository.
+The workflow checks for credentials without printing them. If they are not configured, it skips Unity tests and the build and emits a warning, so public forks and pull requests do not fail merely because secrets are unavailable. A skipped run is not a test pass. Do not commit license files, account credentials, or serial keys to the repository.
 
 ## Suggest features or contribute
 
@@ -59,6 +64,7 @@ Assets/
   Resources/EchoTuning.asset             Generated when the scene setup command runs
   Scenes/ProjectEcho.unity               Generated when the scene setup command runs
   Scripts/
+    ProjectEcho.Runtime.asmdef           Runtime assembly referenced by EditMode tests
     Data/EchoData.cs                     Serializable simulation/save models
     Data/EchoTuning.cs                   ScriptableObject balance and encounter content
     Systems/EchoServices.cs              Memory, needs, traits, relationships, mutations
@@ -67,6 +73,11 @@ Assets/
     World/EchoExpeditionDirector.cs      Expedition events and consequences
     World/EchoSceneBootstrap.cs          Runtime composition, world, and Echo actor
     UI/EchoHUD.cs                        Sanctuary, journal, expedition, mutation UI
+    UI/EchoMemoryFilter.cs               Shared production journal filter and sort
+  Tests/EditMode/
+    EchoDataModelTests.cs                Echo profile/state validation tests
+    EchoMemoryFilterTests.cs             Memory archive filter tests
+LAUNCH_COPY.md                           Announcement and social teaser drafts
 Packages/manifest.json
 ProjectSettings/ProjectVersion.txt
 CONTRIBUTING.md
