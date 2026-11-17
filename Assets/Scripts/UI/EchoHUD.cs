@@ -10,17 +10,28 @@ namespace ProjectEcho
         private Page page = Page.Sanctuary;
         private Vector2 journalScroll;
         private Vector2 mutationScroll;
+        private Vector2 sanctuaryLeftScroll;
+        private Vector2 sanctuaryRightScroll;
+        private MemoryKind? journalFilter;
+        private string echoNameDraft = "";
+        private string sanctuaryNameDraft = "";
+        private bool identityDraftsLoaded;
         private GUIStyle panel, button, label, title, muted, tab, tabActive, heading, small, action;
         private Texture2D panelTexture, buttonTexture, activeTexture, barTexture;
         private string toast = "The Sanctuary is listening.";
         private float toastTimer;
 
-        private void Start() { game = UnityEngine.Object.FindAnyObjectByType<EchoSceneBootstrap>(); }
+        private void Start()
+        {
+            game = UnityEngine.Object.FindAnyObjectByType<EchoSceneBootstrap>();
+            SyncIdentityDrafts();
+        }
 
         private void OnGUI()
         {
             if (game == null) game = UnityEngine.Object.FindAnyObjectByType<EchoSceneBootstrap>();
             if (game == null || game.Profile == null) return;
+            if (!identityDraftsLoaded) SyncIdentityDrafts();
             EnsureStyles();
             float w = Screen.width, h = Screen.height;
             GUI.Box(new Rect(18, 16, w - 36, 58), GUIContent.none, panel);
@@ -62,11 +73,12 @@ namespace ProjectEcho
 
         private void DrawSanctuary(float w, float h)
         {
-            float top = 132, panelHeight = Mathf.Max(400, h - 198);
+            float top = 132, panelHeight = Mathf.Max(220, h - 198);
             Rect left = new Rect(24, top, 315, panelHeight);
             Rect right = new Rect(w - 344, top, 320, panelHeight);
             GUI.Box(left, GUIContent.none, panel);
             GUILayout.BeginArea(new Rect(left.x + 18, left.y + 17, left.width - 36, left.height - 34));
+            sanctuaryLeftScroll = GUILayout.BeginScrollView(sanctuaryLeftScroll, GUILayout.ExpandHeight(true));
             GUILayout.Label("YOUR ECHO", muted);
             GUILayout.Label(game.Profile.displayName, title);
             GUILayout.Label(game.Profile.species + "  ·  " + game.Profile.sanctuaryName, small);
@@ -83,10 +95,18 @@ namespace ProjectEcho
             TraitRow("Loyalty", TraitKey.Loyalty);
             TraitRow("Creativity", TraitKey.Creativity);
             TraitRow("Self-preservation", TraitKey.SelfPreservation);
+            GUILayout.Space(10);
+            GUILayout.Label("BOND WITH CREATOR", heading);
+            RelationshipRow("Trust", game.Profile.playerRelationship.trust);
+            RelationshipRow("Friendship", game.Profile.playerRelationship.friendship);
+            RelationshipRow("Respect", game.Profile.playerRelationship.respect);
+            RelationshipRow("Fear", game.Profile.playerRelationship.fear);
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
 
             GUI.Box(right, GUIContent.none, panel);
             GUILayout.BeginArea(new Rect(right.x + 18, right.y + 17, right.width - 36, right.height - 34));
+            sanctuaryRightScroll = GUILayout.BeginScrollView(sanctuaryRightScroll, GUILayout.ExpandHeight(true));
             GUILayout.Label("SANCTUARY", muted);
             GUILayout.Label("A place to return to.", heading);
             GUILayout.Space(6);
@@ -102,10 +122,11 @@ namespace ProjectEcho
             CareButton("Stay close", "Safety and trust grow", game.CareSoothe);
             CareButton("Play together", "Social need and curiosity rise", game.CarePlay);
             CareButton("Make a quiet place", "Energy returns", game.CareRest);
-            GUILayout.FlexibleSpace();
+            GUILayout.Space(10);
             GUILayout.Label("EXPEDITIONS", muted);
             GUILayout.Label(game.Profile.expeditionsCompleted + " journeys remembered", heading);
             if (GUILayout.Button("CHOOSE AN EXPEDITION  →", action, GUILayout.Height(43))) page = Page.Expedition;
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
 
@@ -190,9 +211,50 @@ namespace ProjectEcho
             GUILayout.Label("MEMORY ARCHIVE", muted);
             GUILayout.Label("What stays with " + game.Profile.displayName + ".", title);
             GUILayout.Label(game.Profile.memories.Count + " experiences in the current record", small);
-            GUILayout.Space(14);
+            GUILayout.Space(7);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("ECHO", muted, GUILayout.Width(40));
+            echoNameDraft = GUILayout.TextField(echoNameDraft, GUILayout.Width(170));
+            GUILayout.Label("SANCTUARY", muted, GUILayout.Width(76));
+            sanctuaryNameDraft = GUILayout.TextField(sanctuaryNameDraft, GUILayout.Width(210));
+            if (GUILayout.Button("SAVE NAMES", button, GUILayout.Width(120), GUILayout.Height(27))) SaveIdentityNames();
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("COPY ECHO STORY", action, GUILayout.Width(190), GUILayout.Height(34))) CopyEchoStory();
+            GUILayout.Label("Share a remembered moment with a friend.", small);
+            GUILayout.EndHorizontal();
+
+            var places = game.State.worldKnowledge
+                .Where(entry => entry != null && entry.visits > 0)
+                .OrderByDescending(entry => entry.visits)
+                .Take(3)
+                .ToList();
+            if (places.Count > 0)
+            {
+                GUILayout.Label("PLACES THE ECHO KNOWS", muted);
+                foreach (var place in places)
+                {
+                    string tags = place.knownTags == null || place.knownTags.Count == 0
+                        ? "unmapped"
+                        : string.Join(", ", place.knownTags.Select(tag => tag.ToString()).ToArray());
+                    GUILayout.Label(place.location + "  ·  " + place.visits + " visits  ·  " + tags, small);
+                }
+            }
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("ALL", journalFilter == null ? tabActive : tab, GUILayout.Width(72), GUILayout.Height(27))) journalFilter = null;
+            if (GUILayout.Button("PERSONAL", journalFilter == MemoryKind.Personal ? tabActive : tab, GUILayout.Width(100), GUILayout.Height(27))) journalFilter = MemoryKind.Personal;
+            if (GUILayout.Button("ENVIRONMENT", journalFilter == MemoryKind.Environmental ? tabActive : tab, GUILayout.Width(125), GUILayout.Height(27))) journalFilter = MemoryKind.Environmental;
+            if (GUILayout.Button("SOCIAL", journalFilter == MemoryKind.Social ? tabActive : tab, GUILayout.Width(85), GUILayout.Height(27))) journalFilter = MemoryKind.Social;
+            GUILayout.EndHorizontal();
+
             journalScroll = GUILayout.BeginScrollView(journalScroll, GUILayout.ExpandHeight(true));
-            var memories = game.Profile.memories.OrderByDescending(m => m.timestampUtc).ToList();
+            var memories = game.Profile.memories
+                .Where(memory => memory != null && (!journalFilter.HasValue || memory.kind == journalFilter.Value))
+                .OrderByDescending(memory => memory.timestampUtc)
+                .ToList();
             foreach (var memory in memories)
             {
                 GUILayout.BeginVertical(panel);
@@ -201,9 +263,65 @@ namespace ProjectEcho
                 GUILayout.Label("Importance " + Mathf.RoundToInt(memory.importance * 100) + "%   ·   " + memory.tag, small);
                 GUILayout.EndVertical(); GUILayout.Space(7);
             }
-            if (memories.Count == 0) GUILayout.Label("No memories yet. A small moment in the Sanctuary can be the first.", label);
+            if (memories.Count == 0)
+                GUILayout.Label(game.Profile.memories.Count == 0
+                    ? "No memories yet. A small moment in the Sanctuary can be the first."
+                    : "No memories in this category yet. Choose another filter to keep exploring the archive.", label);
             GUILayout.EndScrollView();
             GUILayout.EndArea();
+        }
+
+        private void SyncIdentityDrafts()
+        {
+            if (game == null || game.Profile == null) return;
+            echoNameDraft = game.Profile.displayName;
+            sanctuaryNameDraft = game.Profile.sanctuaryName;
+            identityDraftsLoaded = true;
+        }
+
+        private void SaveIdentityNames()
+        {
+            string echoName = (echoNameDraft ?? "").Trim();
+            string sanctuaryName = (sanctuaryNameDraft ?? "").Trim();
+            if (string.IsNullOrEmpty(echoName))
+            {
+                echoNameDraft = "";
+                SetToast("Give your Echo a name before saving.");
+                return;
+            }
+            if (string.IsNullOrEmpty(sanctuaryName))
+            {
+                sanctuaryNameDraft = "";
+                SetToast("Give your Sanctuary a name before saving.");
+                return;
+            }
+
+            game.Profile.displayName = echoName.Substring(0, Mathf.Min(24, echoName.Length));
+            game.Profile.sanctuaryName = sanctuaryName.Substring(0, Mathf.Min(32, sanctuaryName.Length));
+            if (game.Avatar != null) game.Avatar.gameObject.name = "Echo - " + game.Profile.displayName;
+            SyncIdentityDrafts();
+            game.SaveNow();
+            SetToast("Identity saved. This Echo is yours.");
+        }
+
+        private void CopyEchoStory()
+        {
+            EchoMemory memory = game.Profile.memories
+                .Where(item => item != null)
+                .OrderByDescending(item => item.importance)
+                .ThenByDescending(item => item.timestampUtc)
+                .FirstOrDefault();
+            if (memory == null)
+            {
+                SetToast("Create a memory first, then share its story.");
+                return;
+            }
+
+            string emotion = string.IsNullOrWhiteSpace(memory.emotionalValue) ? "something unforgettable" : memory.emotionalValue.ToLowerInvariant();
+            string location = string.IsNullOrWhiteSpace(memory.location) ? "the Glass Jungle" : memory.location;
+            string summary = string.IsNullOrWhiteSpace(memory.summary) ? "It still remembers the moment." : memory.summary;
+            GUIUtility.systemCopyBuffer = game.Profile.displayName + " remembers " + emotion + " at " + location + ": " + summary;
+            SetToast("Echo story copied to clipboard.");
         }
 
         private void DrawMutations(float w, float h)
@@ -267,6 +385,17 @@ namespace ProjectEcho
             Rect bar = GUILayoutUtility.GetRect(80, 10, GUILayout.ExpandWidth(true));
             DrawBar(bar, game.Profile.traits.Get(trait), new Color(.61f, .49f, .9f));
             GUILayout.Label(Mathf.RoundToInt(game.Profile.traits.Get(trait)).ToString(), muted, GUILayout.Width(30));
+            GUILayout.EndHorizontal();
+        }
+
+        private void RelationshipRow(string name, float value)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(name, small, GUILayout.Width(128));
+            Rect bar = GUILayoutUtility.GetRect(80, 10, GUILayout.ExpandWidth(true));
+            Color color = name == "Fear" ? new Color(.88f, .48f, .56f) : new Color(.32f, .76f, .83f);
+            DrawBar(bar, value, color);
+            GUILayout.Label(Mathf.RoundToInt(value).ToString(), muted, GUILayout.Width(30));
             GUILayout.EndHorizontal();
         }
 

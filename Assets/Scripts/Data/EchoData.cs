@@ -160,6 +160,7 @@ namespace ProjectEcho
         {
             if (string.IsNullOrWhiteSpace(id)) id = Guid.NewGuid().ToString("N");
             if (string.IsNullOrWhiteSpace(displayName)) displayName = "Luma";
+            if (string.IsNullOrWhiteSpace(sanctuaryName)) sanctuaryName = "The Quiet Between";
             if (traits == null) traits = new EchoTraits();
             if (needs == null) needs = new EchoNeeds();
             if (playerRelationship == null) playerRelationship = new EchoRelationship();

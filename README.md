@@ -11,6 +11,10 @@ Project Echo is a single-player life-simulation prototype about creating an arti
 - **Deterministic utility behavior:** unmet needs, traits, trust, and remembered predator/rescue experiences influence the Echo's decisions. Behavior selection is not random.
 - **Expeditions:** three situations per journey, with two choices each. Outcomes are computed from the Echo's traits, needs, player trust, and relevant memories. Journeys can create rescue, ruin, discovery, predator, and homecoming memories.
 - **Memory archive:** personal, environmental, and social memories record tags, emotional value, location, importance, time, participants, and strength. Remembered predator danger influences later decisions.
+- **Personal identity:** rename the Echo and its Sanctuary; names persist in the save file and the renamed Echo is reflected in the scene.
+- **Relationship view:** see trust, friendship, respect, and fear alongside the Echo's needs and personality traits.
+- **World discoveries:** the archive highlights the Echo's most-visited known locations and the memory tags attached to each place.
+- **Memory filters and story sharing:** filter the journal by personal, environmental, or social memories, then copy an important Echo story to the clipboard to share.
 - **Sanctuary care:** feed, soothe, play, or rest. Each action changes needs or relationships and creates a social memory.
 - **Gene Forge:** ten mutations with material costs. Several change the Echo's appearance; Regeneration, Deep Memory, Neural Creativity, Echo Sense, Defensive Shell, and Neural Link also affect simulation behavior or values.
 - **Persistence:** versioned JSON save with backup fallback under `Application.persistentDataPath`.
